@@ -1,0 +1,147 @@
+pipeline {
+    agent {
+        label 'AGENT-1'
+    }
+
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        disableConcurrentBuilds()
+    }
+
+    environment {
+        DEBUG = 'true'
+        appVersion = ''
+        region = 'us-east-1'
+        account_id = '315069654700'
+        project = 'expense'
+        environment = 'dev'
+        component = 'frontend'
+    }
+
+    stages {
+
+        stage('Read Version') {
+            steps {
+                script {
+                    def packageJson = readJSON file: 'package.json'
+                    env.appVersion = packageJson.version
+                    echo "App Version: ${env.appVersion}"
+                }
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm install'
+            }
+        }
+
+        stage('Trivy FS Scan') {
+            steps {
+                sh '''
+                    trivy fs \
+                    --severity HIGH,CRITICAL \
+                    --ignore-unfixed \
+                    --exit-code 1 .
+                '''
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            environment {
+                SCANNER_HOME = tool 'sonar-6.0'
+            }
+            steps {
+                withSonarQubeEnv('sonar-6.0') {
+                    sh """
+                        \$SCANNER_HOME/bin/sonar-scanner \
+                        -Dsonar.projectKey=expense-frontend \
+                        -Dsonar.projectName=expense-frontend \
+                        -Dsonar.sources=.
+                    """
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                withAWS(region: "${region}", credentials: 'aws-creds') {
+                    sh """
+                        aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account_id}.dkr.ecr.${region}.amazonaws.com
+
+                        docker build \
+                        -t ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion} .
+
+                        docker images
+                    """
+                }
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh """
+                    trivy image \
+                    --severity HIGH,CRITICAL \
+                    --ignore-unfixed \
+                    --exit-code 1 \
+                    ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion}
+                """
+            }
+        }
+
+        stage('Push Image To ECR') {
+            steps {
+                withAWS(region: "${region}", credentials: 'aws-creds') {
+                    sh """
+                        docker push ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion}
+                    """
+                }
+            }
+        }
+
+        stage('Deploy To EKS (Helm)') {
+            steps {
+                withAWS(region: "${region}", credentials: 'aws-creds') {
+                    sh """
+                        cd helm
+
+                        helm upgrade --install ${component} \
+                        -n ${project} \
+                        --create-namespace \
+                        -f values-${environment}.yaml \
+                        --set image.tag=${appVersion} .
+
+                        kubectl rollout status deployment/${component} \
+                        -n ${project} \
+                        --timeout=300s
+
+                        kubectl get pods -n ${project}
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            deleteDir()
+        }
+
+        success {
+            echo "Frontend pipeline SUCCESS"
+        }
+
+        failure {
+            echo "Frontend pipeline FAILED"
+        }
+    }
+}
