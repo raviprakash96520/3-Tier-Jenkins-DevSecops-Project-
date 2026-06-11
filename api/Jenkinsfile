@@ -31,6 +31,7 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
+                sh 'cd api'
                 sh 'npm install'
             }
         }
@@ -38,6 +39,7 @@ pipeline {
         stage('Trivy FS Scan') {
             steps {
                 sh '''
+                    cd api
                     trivy fs \
                     --severity HIGH,CRITICAL \
                     --ignore-unfixed \
