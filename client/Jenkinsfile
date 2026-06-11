@@ -31,13 +31,16 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'
-            }
+                dir('client') {
+                    sh 'npm install'
+                }
+    }
         }
 
         stage('Trivy FS Scan') {
             steps {
                 sh '''
+                    cd client
                     trivy fs \
                     --severity HIGH,CRITICAL \
                     --ignore-unfixed \
@@ -51,7 +54,7 @@ pipeline {
                 SCANNER_HOME = tool 'sonar-6.0'
             }
             steps {
-                dir('.') {
+                dir('client') {
                     withSonarQubeEnv('sonar-6.0') {
                         sh """
                             \$SCANNER_HOME/bin/sonar-scanner \
