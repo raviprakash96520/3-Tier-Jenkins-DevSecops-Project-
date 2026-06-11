@@ -20,18 +20,17 @@ pipeline {
     stages {
 
         stage('Read Version') {
-            steps {
-                script {
-                     def packageJson = readJSON file: 'api/package.json'
-
-            echo "Package JSON = ${packageJson}"
-
-            env.appVersion = packageJson.version
+    steps {
+        script {
+            env.appVersion = sh(
+                script: "node -p \"require('./api/package.json').version\"",
+                returnStdout: true
+            ).trim()
 
             echo "App Version = ${env.appVersion}"
-                }
-            }
         }
+    }
+}
 
         stage('Install Dependencies') {
             steps {
@@ -78,6 +77,8 @@ pipeline {
             steps {
                 withAWS(region: "${region}", credentials: 'aws-creds') {
                     sh """
+                        echo "IMAGE TAG = ${env.appVersion}"
+
                         aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account_id}.dkr.ecr.${region}.amazonaws.com
 
                         docker build -t ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${env.appVersion} ./api
