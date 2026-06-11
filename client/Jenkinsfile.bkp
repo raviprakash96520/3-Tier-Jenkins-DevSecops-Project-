@@ -1,6 +1,5 @@
 pipeline {
-
-    agent any
+    
 
     options {
         timeout(time: 30, unit: 'MINUTES')
@@ -51,15 +50,13 @@ pipeline {
                 SCANNER_HOME = tool 'sonar-6.0'
             }
             steps {
-                dir('.') {
-                    withSonarQubeEnv('sonar-6.0') {
-                        sh """
-                            \$SCANNER_HOME/bin/sonar-scanner \
-                            -Dsonar.projectKey=expense-frontend \
-                            -Dsonar.projectName=expense-frontend \
-                            -Dsonar.sources=.
-                        """
-                    }
+                withSonarQubeEnv('sonar-6.0') {
+                    sh """
+                        \$SCANNER_HOME/bin/sonar-scanner \
+                        -Dsonar.projectKey=expense-frontend \
+                        -Dsonar.projectName=expense-frontend \
+                        -Dsonar.sources=.
+                    """
                 }
             }
         }
@@ -76,8 +73,7 @@ pipeline {
             steps {
                 withAWS(region: "${region}", credentials: 'aws-creds') {
                     sh """
-                        aws ecr get-login-password --region ${region} \
-                        | docker login --username AWS --password-stdin ${account_id}.dkr.ecr.${region}.amazonaws.com
+                        aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account_id}.dkr.ecr.${region}.amazonaws.com
 
                         docker build \
                         -t ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion} .
@@ -88,17 +84,17 @@ pipeline {
             }
         }
 
-        // stage('Trivy Image Scan') {
-        //     steps {
-        //         sh """
-        //             trivy image \
-        //             --severity HIGH,CRITICAL \
-        //             --ignore-unfixed \
-        //             --exit-code 1 \
-        //             ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion}
-        //         """
-        //     }
-        // }
+        stage('Trivy Image Scan') {
+            steps {
+                sh """
+                    trivy image \
+                    --severity HIGH,CRITICAL \
+                    --ignore-unfixed \
+                    --exit-code 1 \
+                    ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion}
+                """
+            }
+        }
 
         stage('Push Image To ECR') {
             steps {
@@ -110,26 +106,19 @@ pipeline {
             }
         }
 
-        stage('Deploy To EKS') {
+        stage('Deploy To EKS (Helm)') {
             steps {
                 withAWS(region: "${region}", credentials: 'aws-creds') {
                     sh """
+                        cd helm
 
-                        aws eks update-kubeconfig \
-                        --region ${region} \
-                        --name ${project}
+                        helm upgrade --install ${component} \
+                        -n ${project} \
+                        --create-namespace \
+                        -f values-${environment}.yaml \
+                        --set image.tag=${appVersion} .
 
-                        kubectl get nodes
-
-                        kubectl apply -f k8s-prod/namespace.yaml
-                        kubectl apply -f k8s-prod/sc.yaml
-                        kubectl apply -f k8s-prod/frontend.yaml
-
-                        kubectl set image deployment/frontend \
-                        frontend=${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion} \
-                        -n ${project}
-
-                        kubectl rollout status deployment/frontend \
+                        kubectl rollout status deployment/${component} \
                         -n ${project} \
                         --timeout=300s
 
@@ -146,11 +135,11 @@ pipeline {
         }
 
         success {
-            echo "Frontend pipeline completed successfully"
+            echo "Frontend pipeline SUCCESS"
         }
 
         failure {
-            echo "Frontend pipeline failed"
+            echo "Frontend pipeline FAILED"
         }
     }
 }
