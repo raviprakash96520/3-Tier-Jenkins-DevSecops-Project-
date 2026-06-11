@@ -9,7 +9,7 @@ pipeline {
 
     environment {
         DEBUG = 'true'
-        appVersion = ''
+        appVersion = 'latest'
         region = 'us-east-1'
         account_id = '736184860833'
         project = 'expense'
