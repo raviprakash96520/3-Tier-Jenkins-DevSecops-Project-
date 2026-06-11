@@ -102,7 +102,7 @@ pipeline {
             steps {
                 withAWS(region: "${region}", credentials: 'aws-creds') {
                     sh """
-                        docker push ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion}
+                        docker push ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${env.appVersion}
                     """
                 }
             }
@@ -124,7 +124,7 @@ pipeline {
                         kubectl apply -f k8s-prod/frontend.yaml
 
                         kubectl set image deployment/frontend \
-                        frontend=${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion} \
+                        frontend=${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${env.appVersion} \
                         -n ${project}
 
                         kubectl rollout status deployment/frontend \
