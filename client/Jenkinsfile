@@ -51,20 +51,15 @@ pipeline {
 
         stage('SonarQube Analysis') {
             environment {
-                SCANNER_HOME = tool 'sonar-6.0'
+        SCANNER_HOME = tool 'sonar-scanner'
+    }
+    steps {
+        dir('client') {
+            withSonarQubeEnv('sonar-server') {
+                sh '$SCANNER_HOME/bin/sonar-scanner'
             }
-            steps {
-                dir('client') {
-                    withSonarQubeEnv('sonar-6.0') {
-                        sh """
-                            \$SCANNER_HOME/bin/sonar-scanner \
-                            -Dsonar.projectKey=expense-frontend \
-                            -Dsonar.projectName=expense-frontend \
-                            -Dsonar.sources=.
-                        """
-                    }
-                }
-            }
+        }
+    }
         }
 
         stage('Quality Gate') {
@@ -83,7 +78,7 @@ pipeline {
                         | docker login --username AWS --password-stdin ${account_id}.dkr.ecr.${region}.amazonaws.com
 
                         docker build \
-                        -t ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion} .
+                        -t ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion} ./client
 
                         docker images
                     """
