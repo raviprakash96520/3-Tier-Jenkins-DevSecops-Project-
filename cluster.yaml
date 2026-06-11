@@ -3,15 +3,42 @@ kind: ClusterConfig
 
 metadata:
   name: expense
-  region: ap-south-1
+  region: us-east-1
+  version: "1.33"
+  tags:
+    owner: Ravi
+    bu: hns
+    environment: prod
+    project: expense-project
+
+availabilityZones:
+  - us-east-1a
+  - us-east-1b
+
+iam:
+  withOIDC: true
 
 managedNodeGroups:
-  - name: spot-workers
+  - name: Worker-Node-Group
+    instanceType: m7i-flex.large
     minSize: 2
-    maxSize: 10
-    desiredCapacity: 3
+    maxSize: 5
+    privateNetworking: false
+    volumeSize: 20
     spot: true
-    instanceTypes:
-      - m5.large
-      - m5a.large
-      - t3.large
+    # ssh:
+    #   allow: true
+      #publicKeyName: new-keypair
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        externalDNS: false
+        certManager: false
+        ebs: true
+        fsx: false
+        efs: false
+        albIngress: true
+        xRay: false
+        cloudWatch: false
+    labels:
+      lifecycle: ec2-autoscaler

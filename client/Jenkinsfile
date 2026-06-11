@@ -1,7 +1,5 @@
 pipeline {
-    agent {
-        label 'AGENT-1'
-    }
+    
 
     options {
         timeout(time: 30, unit: 'MINUTES')
@@ -12,7 +10,7 @@ pipeline {
         DEBUG = 'true'
         appVersion = ''
         region = 'us-east-1'
-        account_id = '315069654700'
+        account_id = '736184860833'
         project = 'expense'
         environment = 'dev'
         component = 'frontend'

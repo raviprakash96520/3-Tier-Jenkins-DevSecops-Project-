@@ -1,7 +1,6 @@
 pipeline {
-    agent {
-        label 'AGENT-1'
-    }
+
+    agent any
 
     options {
         timeout(time: 30, unit: 'MINUTES')
@@ -12,7 +11,7 @@ pipeline {
         DEBUG = 'true'
         appVersion = ''
         region = 'us-east-1'
-        account_id = '315069654700'
+        account_id = '736184860833'
         project = 'expense'
         environment = 'dev'
         component = 'backend'
@@ -106,25 +105,36 @@ pipeline {
             steps {
                 withAWS(region: "${region}", credentials: 'aws-creds') {
                     sh """
+                        // aws eks update-kubeconfig \
+                        // --region ${region} \
+                        // --name ${project}-${environment}
+
                         aws eks update-kubeconfig \
                         --region ${region} \
-                        --name ${project}-${environment}
+                        --name ${project}
 
                         kubectl get nodes
 
-                        cd helm
+                        // cd helm
 
-                        helm upgrade --install ${component} \
-                        -n ${project} \
-                        --create-namespace \
-                        -f values-${environment}.yaml \
-                        --set image.tag=${appVersion} .
+                        // helm upgrade --install ${component} \
+                        // -n ${project} \
+                        // --create-namespace \
+                        // -f values-${environment}.yaml \
+                        // --set image.tag=${appVersion} .
 
-                        kubectl rollout status deployment/${component} \
-                        -n ${project} \
-                        --timeout=300s
+                        // kubectl rollout status deployment/${component} \
+                        // -n ${project} \
+                        // --timeout=300s
 
-                        kubectl get pods -n ${project}
+                        // kubectl get pods -n ${project}
+
+
+                        kubectl apply -f k8s-prod/namespace.yaml
+                        kubectl apply -f k8s-prod/sc.yaml
+                        kubectl apply -f k8s-prod/mysql.yaml
+                        kubectl apply -f k8s-prod/backend.yaml
+                        
                     """
                 }
             }
