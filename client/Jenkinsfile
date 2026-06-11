@@ -119,9 +119,10 @@ pipeline {
 
                         kubectl get nodes
 
-                        kubectl apply -f k8s-prod/namespace.yaml
-                        kubectl apply -f k8s-prod/sc.yaml
+                        
+                       
                         kubectl apply -f k8s-prod/frontend.yaml
+                         kubectl apply -f k8s-prod/ingress.yaml
 
                         kubectl set image deployment/frontend \
                         frontend=${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${env.appVersion} \
