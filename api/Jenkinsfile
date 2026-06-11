@@ -54,17 +54,17 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-            environment {
-                    SCANNER_HOME = tool 'sonar-scanner'
-                }
-                steps {
-                    dir('api') {
-                        withSonarQubeEnv('sonar-6.0') {
-                            sh '$SCANNER_HOME/bin/sonar-scanner'
-                        }
-                    }
-                }
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+    }
+    steps {
+        dir('api') {
+            withSonarQubeEnv('sonar-server') {
+                sh '$SCANNER_HOME/bin/sonar-scanner'
+            }
         }
+    }
+}
 
         stage('Quality Gate') {
             steps {
