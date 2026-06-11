@@ -31,9 +31,10 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'cd api'
-                sh 'npm install'
-            }
+                dir('api') {
+                    sh 'npm install'
+                }
+    }
         }
 
         stage('Trivy FS Scan') {
@@ -50,13 +51,15 @@ pipeline {
 
         stage('SonarQube Analysis') {
             environment {
-                SCANNER_HOME = tool 'sonar-6.0'
-            }
-            steps {
-                withSonarQubeEnv('sonar-6.0') {
-                    sh '$SCANNER_HOME/bin/sonar-scanner'
+                    SCANNER_HOME = tool 'sonar-6.0'
                 }
-            }
+                steps {
+                    dir('api') {
+                        withSonarQubeEnv('sonar-6.0') {
+                            sh '$SCANNER_HOME/bin/sonar-scanner'
+                        }
+                    }
+                }
         }
 
         stage('Quality Gate') {
@@ -73,7 +76,7 @@ pipeline {
                     sh """
                         aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account_id}.dkr.ecr.${region}.amazonaws.com
 
-                        docker build -t ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion} .
+                        docker build -t ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion} ./api
 
                         docker images
                     """
