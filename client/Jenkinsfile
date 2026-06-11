@@ -78,7 +78,7 @@ pipeline {
                         | docker login --username AWS --password-stdin ${account_id}.dkr.ecr.${region}.amazonaws.com
 
                         docker build \
-                        -t ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion} ./client
+                        -t ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${env.appVersion} ./client
 
                         docker images
                     """
@@ -93,7 +93,7 @@ pipeline {
         //             --severity HIGH,CRITICAL \
         //             --ignore-unfixed \
         //             --exit-code 1 \
-        //             ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion}
+        //             ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${env.appVersion}
         //         """
         //     }
         // }
