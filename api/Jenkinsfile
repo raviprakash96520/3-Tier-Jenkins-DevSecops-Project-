@@ -105,9 +105,7 @@ pipeline {
             steps {
                 withAWS(region: "${region}", credentials: 'aws-creds') {
                     sh """
-                        // aws eks update-kubeconfig \
-                        // --region ${region} \
-                        // --name ${project}-${environment}
+                        
 
                         aws eks update-kubeconfig \
                         --region ${region} \
@@ -115,25 +113,24 @@ pipeline {
 
                         kubectl get nodes
 
-                        // cd helm
-
-                        // helm upgrade --install ${component} \
-                        // -n ${project} \
-                        // --create-namespace \
-                        // -f values-${environment}.yaml \
-                        // --set image.tag=${appVersion} .
-
-                        // kubectl rollout status deployment/${component} \
-                        // -n ${project} \
-                        // --timeout=300s
-
-                        // kubectl get pods -n ${project}
+                        
 
 
                         kubectl apply -f k8s-prod/namespace.yaml
                         kubectl apply -f k8s-prod/sc.yaml
                         kubectl apply -f k8s-prod/mysql.yaml
                         kubectl apply -f k8s-prod/backend.yaml
+
+
+                         kubectl set image deployment/backend \
+                backend=${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion} \
+                -n ${project}
+
+                kubectl rollout status deployment/backend \
+                -n ${project} \
+                --timeout=300s
+
+                 kubectl get pods -n ${project}
                         
                     """
                 }

@@ -51,7 +51,7 @@ spec:
           done
       containers:
       - name: backend
-        image: ravi6198/backend:${appVersion}
+        image: 736184860833.dkr.ecr.us-east-1.amazonaws.com/expense/dev/backend:1.0.0
         resources:
           limits:
             cpu: "500m"
