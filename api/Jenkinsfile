@@ -80,7 +80,7 @@ pipeline {
                     sh """
                         aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account_id}.dkr.ecr.${region}.amazonaws.com
 
-                        docker build -t ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion} ./api
+                        docker build -t ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${env.appVersion} ./api
 
                         docker images
                     """
@@ -95,7 +95,7 @@ pipeline {
                     --severity HIGH,CRITICAL \
                     --ignore-unfixed \
                     --exit-code 1 \
-                    ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion}
+                    ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${env.appVersion}
                 """
             }
         }
@@ -104,7 +104,7 @@ pipeline {
             steps {
                 withAWS(region: "${region}", credentials: 'aws-creds') {
                     sh """
-                        docker push ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion}
+                        docker push ${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${env.appVersion}
                     """
                 }
             }
@@ -132,7 +132,7 @@ pipeline {
 
 
                          kubectl set image deployment/backend \
-                backend=${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${appVersion} \
+                backend=${account_id}.dkr.ecr.${region}.amazonaws.com/${project}/${environment}/${component}:${env.appVersion} \
                 -n ${project}
 
                 kubectl rollout status deployment/backend \
